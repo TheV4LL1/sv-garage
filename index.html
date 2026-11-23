@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>SV Garage</title>
+  <style>
+    :root {
+      --bg: #06080b;
+      --surface: #10141c;
+      --surface-2: #171d28;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: rgba(255, 255, 255, 0.09);
+      --accent: #2563eb;
+      --oil-color: #f97316;
+      --fuel-color: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: #030406;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 430px;
+      min-height: 100vh;
+      background: var(--bg);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* 1. SV INTRO SPLASH */
+    .intro-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: radial-gradient(circle at 50% 45%, #151c2c 0%, #05070a 72%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.75s ease, visibility 0.75s ease;
+      cursor: pointer;
+    }
+
+    .intro-overlay.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .sv-monogram {
+      display: flex;
+      align-items: baseline;
+      gap: 2px;
+      font-size: 74px;
+      font-weight: 800;
+      letter-spacing: -4px;
+      line-height: 1;
+      color: #ffffff;
+      opacity: 0;
+      filter: blur(10px);
+      transform: scale(0.92);
+      animation: svGlowIn 1.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .sv-monogram span.v-letter {
+      color: #60a5fa;
+      transform: translateY(6px);
+      display: inline-block;
+      font-style: italic;
+    }
+
+    .sv-line {
+      width: 0;
+      height: 2px;
+      margin-top: 14px;
+      background: linear-gradient(90deg, transparent, #60a5fa, #ef4444, transparent);
+      animation: svLineExpand 1.6s ease 0.35s forwards;
+    }
+
+    .sv-sub {
+      margin-top: 12px;
+      font-size: 11px;
+      letter-spacing: 3.5px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.55);
+      opacity: 0;
+      animation: svSubFade 1.4s ease 0.75s forwards;
+    }
+
+    @keyframes svGlowIn {
+      0% {
+        opacity: 0;
+        filter: blur(12px);
+        transform: scale(0.9);
+        text-shadow: 0 0 0 rgba(96, 165, 250, 0);
+      }
+      65% {
+        opacity: 1;
+        filter: blur(0);
+        transform: scale(1.02);
+        text-shadow: 0 0 28px rgba(96, 165, 250, 0.65), 0 0 55px rgba(37, 99, 235, 0.35);
+      }
+      100% {
+        opacity: 1;
+        filter: blur(0);
+        transform: scale(1);
+        text-shadow: 0 0 18px rgba(96, 165, 250, 0.35);
+      }
+    }
+
+    @keyframes svLineExpand {
+      to { width: 120px; }
+    }
+
+    @keyframes svSubFade {
+      to { opacity: 1; }
+    }
+
+    /* Views */
+    .view {
+      display: none;
+      min-height: 100vh;
+    }
+    .view.active {
+      display: block;
+    }
+
+    /* 2. VERTICAL SCROLLING GARAGE */
+    .garage-view {
+      padding: 20px 18px 44px;
+      background: linear-gradient(180deg, #0d121a 0%, var(--bg) 35%);
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      gap: 10px;
+    }
+
+    .kicker-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .top-kicker {
+      font-size: 11px;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .edit-name-pill {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--border);
+      color: #cbd5e1;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .top-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.6px;
+      margin-top: 2px;
+    }
+
+    .icon-circle-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 22px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .vertical-cars {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .car-tile {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease;
+    }
+
+    .car-tile:active {
+      transform: scale(0.985);
+      border-color: rgba(255, 255, 255, 0.32);
+    }
+
+    .tile-img-box {
+      width: 100%;
+      height: 184px;
+      background: #05070a;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tile-img-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .tile-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(7, 9, 13, 0.82);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .tile-badge.ok { color: #34d399; }
+    .tile-badge.warn { color: #fbbf24; }
+
+    .tile-content {
+      padding: 15px 16px 17px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tile-make {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .tile-model {
+      font-size: 20px;
+      font-weight: 800;
+      margin-top: 2px;
+      letter-spacing: -0.3px;
+    }
+
+    .tile-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+
+    .tile-chevron {
+      font-size: 24px;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    /* 3. CAR DETAIL VIEW (DARK THEME + BLACK FADE) */
+    .detail-view {
+      background: #06080c;
+      color: #ffffff;
+      min-height: 100vh;
+      padding-bottom: 44px;
+    }
+
+    .hero-stage {
+      position: relative;
+      background:
+        radial-gradient(circle at 22% 24%, rgba(37, 99, 235, 0.34), transparent 55%),
+        radial-gradient(circle at 80% 22%, rgba(225, 29, 72, 0.28), transparent 52%),
+        linear-gradient(180deg, #07090e 0%, #090c12 70%, #06080c 100%);
+      padding: 14px 18px 20px;
+      color: #ffffff;
+      overflow: hidden;
+    }
+
+    /* Sfuma lo sfondo superiore verso il nero */
+    .hero-stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(6, 8, 12, 0.18) 0%, rgba(6, 8, 12, 0.55) 68%, #06080c 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .detail-nav {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .detail-nav-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(8px);
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .detail-car-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-align: center;
+      color: #ffffff;
+    }
+
+    .hero-big-status {
+      position: relative;
+      z-index: 3;
+      font-size: 46px;
+      font-weight: 800;
+      line-height: 0.96;
+      letter-spacing: -1.5px;
+      text-transform: uppercase;
+      margin-top: 6px;
+      color: #ffffff;
+      text-shadow: 0 10px 28px rgba(0, 0, 0, 0.65);
+    }
+
+    .hero-car-frame {
+      position: relative;
+      z-index: 3;
+      margin-top: 14px;
+      border-radius: 20px;
+      overflow: hidden;
+      height: 202px;
+      box-shadow: 0 22px 38px rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: #05070a;
+    }
+
+    .hero-car-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Sfuma l'immagine verso il nero sui bordi/basso */
+    .hero-car-frame::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at center, transparent 48%, rgba(5, 7, 10, 0.68) 100%),
+        linear-gradient(180deg, rgba(5, 7, 10, 0.12) 0%, rgba(5, 7, 10, 0.25) 55%, #06080c 100%);
+      pointer-events: none;
+    }
+
+    .detail-body {
+      padding: 4px 16px 24px;
+      background: #06080c;
+      color: #ffffff;
+    }
+
+    .status-check-box {
+      text-align: center;
+      padding: 6px 0 16px;
+    }
+
+    .status-check-line {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+
+    .status-check-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .combined-fluids-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 15px;
+      margin-bottom: 14px;
+    }
+
+    .dark-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .fluids-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .fluid-box {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .fluid-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .fluid-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .fluid-pct {
+      font-size: 18px;
+      font-weight: 800;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bar-bg {
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .bar-fg {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.25s ease;
+    }
+
+    .bar-oil {
+      background: var(--oil-color);
+    }
+
+    .bar-fuel {
+      background: var(--fuel-color);
+    }
+
+    .fluid-hint {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .perf-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 15px;
+    }
+
+    .perf-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .perf-tile {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 13px;
+    }
+
+    .perf-k {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .perf-v {
+      font-size: 21px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-top: 3px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .perf-u {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-left: 3px;
+    }
+
+    .specs-extra {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .spec-chip {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 9px 8px;
+      text-align: center;
+    }
+
+    .spec-chip .sk {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .spec-chip .sv {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 2px;
+    }
+
+    /* Modal */
+    .modal-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(5px);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 80;
+    }
+
+    .modal-bg.open {
+      display: flex;
+    }
+
+    .sheet-box {
+      width: 100%;
+      max-width: 430px;
+      max-height: 88vh;
+      overflow-y: auto;
+      background: #121722;
+      color: var(--text);
+      border-top: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 24px 24px 0 0;
+      padding: 18px 18px calc(24px + env(safe-area-inset-bottom));
+    }
+
+    .sheet-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .sheet-title {
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .sheet-close {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .group {
+      margin-bottom: 16px;
+    }
+
+    .group-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .group-label strong {
+      color: #ffffff;
+      font-size: 15px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #3b82f6;
+      height: 6px;
+    }
+
+    .input-field {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: #ffffff;
+      padding: 10px 12px;
+      border-radius: 11px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .btn-main {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 13px;
+      background: #2563eb;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    .btn-ghost {
+      width: 100%;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 12px;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- 1. INTRO SV (RESTA SEMPRE SV) -->
+    <div class="intro-overlay" id="introOverlay" title="Tocca per entrare">
+      <div class="sv-monogram">
+        <span>S</span><span class="v-letter">V</span>
+      </div>
+      <div class="sv-line"></div>
+      <div class="sv-sub">Garage System</div>
+    </div>
+
+    <!-- 2. SCHERMATA PRINCIPALE -->
+    <section class="view garage-view active" id="garageView">
+      <header class="top-bar">
+        <div>
+          <div class="kicker-row">
+            <span class="top-kicker" id="garageKicker">SV • Garage</span>
+            <button class="edit-name-pill" id="editBrandNameBtn" title="Modifica nome al posto di SV">Nome</button>
+          </div>
+          <div class="top-title">Le Tue Auto</div>
+        </div>
+        <button class="icon-circle-btn" id="addCarOpenBtn" title="Aggiungi auto">+</button>
+      </header>
+
+      <div class="vertical-cars" id="verticalCarsList"></div>
+    </section>
+
+    <!-- 3. SCHERMATA SINGOLA AUTO -->
+    <section class="view detail-view" id="detailView">
+      <div class="hero-stage">
+        <nav class="detail-nav">
+          <button class="detail-nav-btn" id="backToGarageBtn" aria-label="Indietro">‹</button>
+          <div class="detail-car-title" id="detailHeaderModel">M3 Competition</div>
+          <button class="detail-nav-btn" id="editLevelsBtn" aria-label="Modifica livelli">+</button>
+        </nav>
+
+        <div class="hero-big-status" id="heroBigStatus">ALL<br/>GOOD</div>
+
+        <div class="hero-car-frame">
+          <img id="detailCarImg" src="" alt="Auto" />
+        </div>
+      </div>
+
+      <div class="detail-body">
+        <div class="status-check-box">
+          <div class="status-check-line" id="detailStatusLine">ALL SYSTEMS OK • VEHICLE READY</div>
+          <div class="status-check-sub" id="detailSubLine">Diagnostics nominal</div>
+        </div>
+
+        <!-- Riquadro unico Olio (Arancione) + Benzina (Verde) -->
+        <div class="combined-fluids-card">
+          <div class="dark-card-head">
+            <span>Livello Olio & Benzina</span>
+            <span id="detailFuelKm">~450 km</span>
+          </div>
+          <div class="fluids-row">
+            <div class="fluid-box">
+              <div class="fluid-top">
+                <span class="fluid-label">Olio</span>
+                <span class="fluid-pct" id="detailOilPct">92%</span>
+              </div>
+              <div class="bar-bg">
+                <div class="bar-fg bar-oil" id="detailOilBar"></div>
+              </div>
+              <div class="fluid-hint" id="detailOilHint">Livello regolare</div>
+            </div>
+
+            <div class="fluid-box">
+              <div class="fluid-top">
+                <span class="fluid-label">Benzina</span>
+                <span class="fluid-pct" id="detailFuelPct">78%</span>
+              </div>
+              <div class="bar-bg">
+                <div class="bar-fg bar-fuel" id="detailFuelBar"></div>
+              </div>
+              <div class="fluid-hint" id="detailFuelHint">Carburante OK</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prestazioni -->
+        <div class="perf-card">
+          <div class="dark-card-head">
+            <span>Prestazioni</span>
+            <span id="detailEngineTag">3.0 L6 Biturbo</span>
+          </div>
+          <div class="perf-grid">
+            <div class="perf-tile">
+              <div class="perf-k">Cavalli</div>
+              <div class="perf-v"><span id="detailHp">530</span><span class="perf-u">CV</span></div>
+            </div>
+            <div class="perf-tile">
+              <div class="perf-k">Coppia</div>
+              <div class="perf-v"><span id="detailNm">650</span><span class="perf-u">Nm</span></div>
+            </div>
+            <div class="perf-tile">
+              <div class="perf-k">Velocità Max</div>
+              <div class="perf-v"><span id="detailVmax">290</span><span class="perf-u">km/h</span></div>
+            </div>
+            <div class="perf-tile">
+              <div class="perf-k">0 - 100 km/h</div>
+              <div class="perf-v"><span id="detailZero">3.5</span><span class="perf-u">s</span></div>
+            </div>
+          </div>
+
+          <div class="specs-extra">
+            <div class="spec-chip">
+              <div class="sk">Trazione</div>
+              <div class="sv" id="detailDrive">M xDrive</div>
+            </div>
+            <div class="spec-chip">
+              <div class="sk">Cambio</div>
+              <div class="sv" id="detailGear">8M Auto</div>
+            </div>
+            <div class="spec-chip">
+              <div class="sk">Peso</div>
+              <div class="sv" id="detailWeight">1.780 kg</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODAL -->
+    <div class="modal-bg" id="modalBg">
+      <div class="sheet-box">
+        <div class="sheet-top">
+          <div class="sheet-title" id="modalTitle">Livelli Veicolo</div>
+          <button class="sheet-close" id="modalCloseBtn">Chiudi</button>
+        </div>
+
+        <!-- Modifica nome al posto di SV -->
+        <div id="brandNameForm" style="display:none;">
+          <div class="group">
+            <div class="group-label"><span>Nome accanto a "• Garage" (vuoto = SV)</span></div>
+            <input class="input-field" id="brandNameInput" maxlength="24" placeholder="Lascia vuoto per tenere SV" />
+          </div>
+          <button class="btn-main" onclick="saveBrandName()">Salva Nome</button>
+          <button class="btn-ghost" onclick="resetBrandName()">Ripristina SV</button>
+        </div>
+
+        <!-- Modifica livelli benzina / olio -->
+        <div id="levelsForm" style="display:none;">
+          <div class="group">
+            <div class="group-label">
+              <span>Livello Benzina</span>
+              <strong id="modalFuelVal">80%</strong>
+            </div>
+            <input type="range" id="modalFuelRange" min="0" max="100" oninput="syncLevels()" />
+          </div>
+
+          <div class="group">
+            <div class="group-label">
+              <span>Livello Olio Motore</span>
+              <strong id="modalOilVal">95%</strong>
+            </div>
+            <input type="range" id="modalOilRange" min="0" max="100" oninput="syncLevels()" />
+          </div>
+
+          <div class="group">
+            <div class="group-label"><span>Percorso o Link Foto Auto</span></div>
+            <input class="input-field" id="modalPhotoInput" placeholder="es. img/m3.jpg oppure https://..." onchange="syncPhoto(this.value)" />
+          </div>
+
+          <button class="btn-main" onclick="closeModal()">Salva</button>
+          <button class="btn-ghost" onclick="restoreDefaults()">Ripristina 5 auto iniziali</button>
+        </div>
+
+        <!-- Aggiungi nuova auto -->
+        <div id="addCarForm" style="display:none;">
+          <input class="input-field" id="addMake" placeholder="Marca (es. Aston Martin)" />
+          <input class="input-field" id="addModel" placeholder="Modello (es. Vantage)" />
+          <div class="two-col">
+            <input class="input-field" id="addHp" type="number" placeholder="Cavalli (es. 665)" />
+            <input class="input-field" id="addNm" type="number" placeholder="Coppia Nm (es. 800)" />
+          </div>
+          <div class="two-col">
+            <input class="input-field" id="addVmax" type="number" placeholder="Vel. Max km/h (es. 325)" />
+            <input class="input-field" id="addZero" placeholder="0-100 s (es. 3.4)" />
+          </div>
+          <input class="input-field" id="addPhoto" placeholder="Foto (es. img/auto.jpg o link)" />
+          <button class="btn-main" onclick="createCar()">Aggiungi al Garage</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "sv_garage_v5";
+    const BRAND_KEY = "sv_garage_custom_name";
+
+    const FALLBACK_IMG =
+      "data:image/svg+xml;utf8," +
+      encodeURIComponent(
+        `<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450' viewBox='0 0 800 450'>
+          <rect width='800' height='450' fill='#0a0d14'/>
+          <ellipse cx='400' cy='345' rx='260' ry='22' fill='rgba(0,0,0,0.75)'/>
+          <path d='M130,305 Q140,260 205,252 L285,248 L385,172 L535,172 L625,246 L685,256 Q715,264 718,295 L712,315 L125,315 Z' fill='#334155'/>
+          <path d='M295,244 L390,184 L522,184 L602,244 Z' fill='#0f172a'/>
+          <circle cx='245' cy='318' r='44' fill='#06080c' stroke='#64748b' stroke-width='6'/>
+          <circle cx='575' cy='318' r='44' fill='#06080c' stroke='#64748b' stroke-width='6'/>
+        </svg>`
+      );
+
+    const DEFAULT_GARAGE = [
+      {
+        id: "812-superfast",
+        make: "Ferrari",
+        model: "812 Superfast",
+        oil: 96,
+        fuel: 84,
+        maxRange: 560,
+        hp: 800,
+        nm: 718,
+        vmax: 340,
+        zero: "2.9",
+        engine: "6.5 V12 Aspirato",
+        drive: "RWD",
+        gear: "7M DCT",
+        weight: "1.525 kg",
+        photo: "img/812.jpg"
+      },
+      {
+        id: "gt3-rs",
+        make: "Porsche",
+        model: "911 GT3 RS",
+        oil: 98,
+        fuel: 76,
+        maxRange: 510,
+        hp: 525,
+        nm: 465,
+        vmax: 296,
+        zero: "3.2",
+        engine: "4.0 Boxer 6",
+        drive: "RWD",
+        gear: "7M PDK",
+        weight: "1.450 kg",
+        photo: "img/gt3rs.jpg"
+      },
+      {
+        id: "m3-comp",
+        make: "BMW",
+        model: "M3 Competition",
+        oil: 92,
+        fuel: 78,
+        maxRange: 540,
+        hp: 530,
+        nm: 650,
+        vmax: 290,
+        zero: "3.5",
+        engine: "3.0 L6 Biturbo",
+        drive: "M xDrive",
+        gear: "8M Auto",
+        weight: "1.780 kg",
+        photo: "img/m3.jpg"
+      },
+      {
+        id: "rs3-sportback",
+        make: "Audi",
+        model: "RS3 Sportback",
+        oil: 94,
+        fuel: 81,
+        maxRange: 580,
+        hp: 400,
+        nm: 500,
+        vmax: 290,
+        zero: "3.8",
+        engine: "2.5 TFSI 5 Cil.",
+        drive: "quattro",
+        gear: "7M S tronic",
+        weight: "1.570 kg",
+        photo: "img/rs3.jpg"
+      },
+      {
+        id: "aventador-svj",
+        make: "Lamborghini",
+        model: "Aventador SVJ",
+        oil: 95,
+        fuel: 67,
+        maxRange: 470,
+        hp: 770,
+        nm: 720,
+        vmax: 350,
+        zero: "2.8",
+        engine: "6.5 V12 Aspirato",
+        drive: "AWD",
+        gear: "7M ISR",
+        weight: "1.525 kg",
+        photo: "img/aventador.jpg"
+      }
+    ];
+
+    let garage = loadGarage();
+    let selectedCarIdx = 0;
+
+    function getCustomLabel() {
+      const saved = localStorage.getItem(BRAND_KEY);
+      return saved && saved.trim() ? saved.trim() : "SV";
+    }
+
+    function renderBrandLabel() {
+      document.getElementById("garageKicker").textContent = `${getCustomLabel()} • Garage`;
+    }
+
+    function loadGarage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (_) {}
+      return JSON.parse(JSON.stringify(DEFAULT_GARAGE));
+    }
+
+    function saveGarage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(garage));
+    }
+
+    /* Intro SV */
+    const introOverlay = document.getElementById("introOverlay");
+    function hideIntro() {
+      introOverlay.classList.add("fade-out");
+    }
+    introOverlay.addEventListener("click", hideIntro);
+    setTimeout(hideIntro, 2700);
+
+    /* Navigation */
+    const garageView = document.getElementById("garageView");
+    const detailView = document.getElementById("detailView");
+
+    function openCarDetail(index) {
+      selectedCarIdx = index;
+      renderDetail();
+      garageView.classList.remove("active");
+      detailView.classList.add("active");
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+
+    document.getElementById("backToGarageBtn").addEventListener("click", () => {
+      detailView.classList.remove("active");
+      garageView.classList.add("active");
+      renderVerticalGarage();
+      window.scrollTo({ top: 0, behavior: "instant" });
+    });
+
+    function isCarOk(car) {
+      return car.fuel > 20 && car.oil > 25;
+    }
+
+    function renderVerticalGarage() {
+      const container = document.getElementById("verticalCarsList");
+      container.innerHTML = garage
+        .map((car, idx) => {
+          const ok = isCarOk(car);
+          return `
+            <article class="car-tile" onclick="openCarDetail(${idx})">
+              <div class="tile-img-box">
+                <img src="${car.photo || FALLBACK_IMG}" alt="${car.make} ${car.model}"
+                     onerror="this.src='${FALLBACK_IMG}'" />
+                <div class="tile-badge ${ok ? "ok" : "warn"}">${ok ? "ALL GOOD" : "CHECK"}</div>
+              </div>
+              <div class="tile-content">
+                <div>
+                  <div class="tile-make">${car.make}</div>
+                  <div class="tile-model">${car.model}</div>
+                  <div class="tile-sub">${car.hp} CV • Benzina ${car.fuel}% • Olio ${car.oil}%</div>
+                </div>
+                <div class="tile-chevron">›</div>
+              </div>
+            </article>
+          `;
+        })
+        .join("");
+    }
+
+    function renderDetail() {
+      const car = garage[selectedCarIdx];
+      const ok = isCarOk(car);
+
+      document.getElementById("detailHeaderModel").textContent = `${car.make} ${car.model}`;
+      document.getElementById("heroBigStatus").innerHTML = ok
+        ? "ALL<br/>GOOD"
+        : car.fuel <= 20
+        ? "LOW<br/>FUEL"
+        : "CHECK<br/>OIL";
+
+      const img = document.getElementById("detailCarImg");
+      img.src = car.photo || FALLBACK_IMG;
+      img.onerror = () => {
+        img.src = FALLBACK_IMG;
+      };
+
+      document.getElementById("detailStatusLine").textContent = ok
+        ? "ALL SYSTEMS OK • VEHICLE READY"
+        : "ATTENTION REQUIRED • CHECK LEVELS";
+      document.getElementById("detailSubLine").textContent = `${car.make} • ${car.model}`;
+
+      const kmLeft = Math.round((car.fuel / 100) * (car.maxRange || 520));
+      document.getElementById("detailFuelKm").textContent = `~${kmLeft} km`;
+
+      document.getElementById("detailOilPct").textContent = `${car.oil}%`;
+      document.getElementById("detailOilBar").style.width = `${car.oil}%`;
+      document.getElementById("detailOilHint").textContent =
+        car.oil > 40 ? "Livello regolare" : "Rabbocco olio";
+
+      document.getElementById("detailFuelPct").textContent = `${car.fuel}%`;
+      document.getElementById("detailFuelBar").style.width = `${car.fuel}%`;
+      document.getElementById("detailFuelHint").textContent =
+        car.fuel > 20 ? "Carburante OK" : "Rifornimento";
+
+      document.getElementById("detailEngineTag").textContent = car.engine;
+      document.getElementById("detailHp").textContent = car.hp;
+      document.getElementById("detailNm").textContent = car.nm;
+      document.getElementById("detailVmax").textContent = car.vmax;
+      document.getElementById("detailZero").textContent = car.zero;
+      document.getElementById("detailDrive").textContent = car.drive;
+      document.getElementById("detailGear").textContent = car.gear;
+      document.getElementById("detailWeight").textContent = car.weight;
+    }
+
+    /* Modal */
+    const modalBg = document.getElementById("modalBg");
+    document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+    modalBg.addEventListener("click", (e) => {
+      if (e.target === modalBg) closeModal();
+    });
+
+    function closeModal() {
+      modalBg.classList.remove("open");
+    }
+
+    function openSheetMode(mode) {
+      document.getElementById("brandNameForm").style.display = mode === "brand" ? "block" : "none";
+      document.getElementById("levelsForm").style.display = mode === "levels" ? "block" : "none";
+      document.getElementById("addCarForm").style.display = mode === "add" ? "block" : "none";
+      modalBg.classList.add("open");
+    }
+
+    document.getElementById("editBrandNameBtn").addEventListener("click", () => {
+      const saved = localStorage.getItem(BRAND_KEY) || "";
+      document.getElementById("modalTitle").textContent = "Nome intestazione";
+      document.getElementById("brandNameInput").value = saved;
+      openSheetMode("brand");
+    });
+
+    function saveBrandName() {
+      const val = document.getElementById("brandNameInput").value.trim();
+      if (val) {
+        localStorage.setItem(BRAND_KEY, val);
+      } else {
+        localStorage.removeItem(BRAND_KEY);
+      }
+      renderBrandLabel();
+      closeModal();
+    }
+
+    function resetBrandName() {
+      localStorage.removeItem(BRAND_KEY);
+      renderBrandLabel();
+      closeModal();
+    }
+
+    document.getElementById("editLevelsBtn").addEventListener("click", () => {
+      const car = garage[selectedCarIdx];
+      document.getElementById("modalTitle").textContent = `Livelli • ${car.model}`;
+      document.getElementById("modalFuelRange").value = car.fuel;
+      document.getElementById("modalFuelVal").textContent = `${car.fuel}%`;
+      document.getElementById("modalOilRange").value = car.oil;
+      document.getElementById("modalOilVal").textContent = `${car.oil}%`;
+      document.getElementById("modalPhotoInput").value = car.photo || "";
+      openSheetMode("levels");
+    });
+
+    document.getElementById("addCarOpenBtn").addEventListener("click", () => {
+      document.getElementById("modalTitle").textContent = "Aggiungi Nuova Auto";
+      openSheetMode("add");
+    });
+
+    function syncLevels() {
+      const fuel = Number(document.getElementById("modalFuelRange").value);
+      const oil = Number(document.getElementById("modalOilRange").value);
+      garage[selectedCarIdx].fuel = fuel;
+      garage[selectedCarIdx].oil = oil;
+      document.getElementById("modalFuelVal").textContent = `${fuel}%`;
+      document.getElementById("modalOilVal").textContent = `${oil}%`;
+      saveGarage();
+      renderDetail();
+      renderVerticalGarage();
+    }
+
+    function syncPhoto(val) {
+      garage[selectedCarIdx].photo = val.trim();
+      saveGarage();
+      renderDetail();
+      renderVerticalGarage();
+    }
+
+    function createCar() {
+      const make = document.getElementById("addMake").value.trim();
+      const model = document.getElementById("addModel").value.trim();
+      if (!make || !model) return;
+
+      garage.push({
+        id: `car-${Date.now()}`,
+        make,
+        model,
+        oil: 95,
+        fuel: 85,
+        maxRange: 520,
+        hp: Number(document.getElementById("addHp").value) || 500,
+        nm: Number(document.getElementById("addNm").value) || 600,
+        vmax: Number(document.getElementById("addVmax").value) || 300,
+        zero: document.getElementById("addZero").value.trim() || "3.5",
+        engine: "Motore Sportivo",
+        drive: "AWD",
+        gear: "Auto DCT",
+        weight: "1.620 kg",
+        photo: document.getElementById("addPhoto").value.trim() || FALLBACK_IMG
+      });
+
+      saveGarage();
+      renderVerticalGarage();
+      closeModal();
+    }
+
+    function restoreDefaults() {
+      garage = JSON.parse(JSON.stringify(DEFAULT_GARAGE));
+      selectedCarIdx = 0;
+      saveGarage();
+      renderVerticalGarage();
+      renderDetail();
+      closeModal();
+    }
+
+    renderBrandLabel();
+    renderVerticalGarage();
+  </script>
+</body>
+</html>
